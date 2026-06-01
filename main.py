@@ -24,7 +24,6 @@ from aiogram.client.session.aiohttp import AiohttpSession
 # =======================================================
 # Proxy kerak bo'lsa yoqing, kerak bo'lmasa oddiy session ishlating
 USE_PROXY = True
-PROXY_URL = "http://proxy.server.pythonanywhere.com:3128"
 
 if USE_PROXY:
     session = AiohttpSession(proxy=PROXY_URL)
