@@ -590,7 +590,10 @@ def generate_report(pending_rows: list) -> bytes:
                 del wb[old_name]
 
         # Har bir chorakni to'ldirish
-        for chorak_num, chorak_data in sorted(group_data["quarters"]):
+        for chorak_num, chorak_data in sorted(
+                group_data["quarters"],
+                key=lambda x: x[0]
+        ):
             try:
                 fill_chorak_block(ws, chorak_num, chorak_data)
             except Exception as e:
