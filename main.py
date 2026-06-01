@@ -23,7 +23,7 @@ from aiogram.client.session.aiohttp import AiohttpSession
 # SOZLAMALAR
 # =======================================================
 # Proxy kerak bo'lsa yoqing, kerak bo'lmasa oddiy session ishlating
-USE_PROXY = True
+USE_PROXY = False
 
 if USE_PROXY:
     session = AiohttpSession(proxy=PROXY_URL)
