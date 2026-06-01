@@ -3,3 +3,4 @@ pandas
 openpyxl
 aiohttp
 aiohttp-socks
+xlrd>=2.0.1
