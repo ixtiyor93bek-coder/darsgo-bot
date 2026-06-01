@@ -26,7 +26,6 @@ from aiogram.client.session.aiohttp import AiohttpSession
 USE_PROXY = False
 
 if USE_PROXY:
-    session = AiohttpSession(proxy=PROXY_URL)
     bot = Bot(token="8708202570:AAHTHMINQfC-sXEmuKvLLObT8XrzGVhCaik", session=session)
 else:
     bot = Bot(token="8708202570:AAHTHMINQfC-sXEmuKvLLObT8XrzGVhCaik")
