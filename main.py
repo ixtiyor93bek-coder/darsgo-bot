@@ -23,14 +23,14 @@ from aiogram.client.session.aiohttp import AiohttpSession
 # SOZLAMALAR
 # =======================================================
 # Proxy kerak bo'lsa yoqing, kerak bo'lmasa oddiy session ishlating
-USE_PROXY = False
-PROXY_URL = None
+USE_PROXY = True
+PROXY_URL = "http://proxy.server.pythonanywhere.com:3128"
 
 if USE_PROXY:
     session = AiohttpSession(proxy=PROXY_URL)
-    bot = Bot(token="8009697681:AAHQ29MgSey2ILZcfNHNHoJndiG-06eBFjg", session=session)
+    bot = Bot(token="8708202570:AAHTHMINQfC-sXEmuKvLLObT8XrzGVhCaik", session=session)
 else:
-    bot = Bot(token="8009697681:AAHQ29MgSey2ILZcfNHNHoJndiG-06eBFjg")
+    bot = Bot(token="8708202570:AAHTHMINQfC-sXEmuKvLLObT8XrzGVhCaik")
 
 dp = Dispatcher(storage=MemoryStorage())
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -227,31 +227,31 @@ def get_regions_kb():
 
 def get_phone_kb():
     return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="рџ“ћ Telefon raqamni yuborish", request_contact=True)]],
+        keyboard=[[KeyboardButton(text="📞 Telefon raqamni yuborish", request_contact=True)]],
         resize_keyboard=True
     )
 
 def get_main_kb():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="рџ“Љ Mening profilim va Referal")],
-            [KeyboardButton(text="рџ“‹ Yuklangan fayllar ro'yxati")],
-            [KeyboardButton(text="вњ… Hisobot tayyorla")],
-            [KeyboardButton(text="рџ—‘ Fayllarni tozalash")],
-            [KeyboardButton(text="вќ“ Bot qanday ishlaydi")]
+            [KeyboardButton(text="📊 Mening profilim va Referal")],
+            [KeyboardButton(text="📋 Yuklangan fayllar ro'yxati")],
+            [KeyboardButton(text="✅ Hisobot tayyorla")],
+            [KeyboardButton(text="🗑 Fayllarni tozalash")],
+            [KeyboardButton(text="❓ Bot qanday ishlaydi")]
         ],
         resize_keyboard=True
     )
 
 def get_admin_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="рџ‘Ґ Foydalanuvchilar", callback_data="admin_users"),
-         InlineKeyboardButton(text="рџ“€ Statistika", callback_data="admin_stats")],
-        [InlineKeyboardButton(text="рџ“ў Majburiy Kanallar", callback_data="admin_channels")],
-        [InlineKeyboardButton(text="рџЊџ VIP Boshqaruvi", callback_data="admin_vips")],
-        [InlineKeyboardButton(text="рџ‘ЁвЂЌрџ’» Adminlar", callback_data="admin_admins")],
-        [InlineKeyboardButton(text="вљ™пёЏ Referal Sozlamasi", callback_data="admin_set_ref")],
-        [InlineKeyboardButton(text="вњ‰пёЏ Xabar yuborish", callback_data="admin_broadcast")]
+        [InlineKeyboardButton(text="👥 Foydalanuvchilar", callback_data="admin_users"),
+         InlineKeyboardButton(text="📈 Statistika", callback_data="admin_stats")],
+        [InlineKeyboardButton(text="📢 Majburiy Kanallar", callback_data="admin_channels")],
+        [InlineKeyboardButton(text="🌟 VIP Boshqaruvi", callback_data="admin_vips")],
+        [InlineKeyboardButton(text="👨‍💻 Adminlar", callback_data="admin_admins")],
+        [InlineKeyboardButton(text="⚙️ Referal Sozlamasi", callback_data="admin_set_ref")],
+        [InlineKeyboardButton(text="✉️ Xabar yuborish", callback_data="admin_broadcast")]
     ])
 
 # =======================================================
@@ -279,7 +279,7 @@ def get_sub_kb(not_subbed):
     kb = InlineKeyboardMarkup(inline_keyboard=[])
     for ch in not_subbed:
         kb.inline_keyboard.append([InlineKeyboardButton(text=ch[1], url=ch[2])])
-    kb.inline_keyboard.append([InlineKeyboardButton(text="вњ… Tasdiqlash", callback_data="check_subs")])
+    kb.inline_keyboard.append([InlineKeyboardButton(text="✅ Tasdiqlash", callback_data="check_subs")])
     return kb
 
 @dp.callback_query(F.data == "check_subs")
@@ -287,7 +287,7 @@ async def check_subs_callback(call: types.CallbackQuery):
     status, not_subbed = await check_mandatory_subs(call.from_user.id)
     if status:
         await call.message.delete()
-        await call.message.answer("вњ… Rahmat! Obuna tasdiqlandi.", reply_markup=get_main_kb())
+        await call.message.answer("✅ Rahmat! Obuna tasdiqlandi.", reply_markup=get_main_kb())
     else:
         await call.answer("Iltimos, barcha kanallarga obuna bo'ling!", show_alert=True)
 
@@ -327,7 +327,7 @@ def parse_import_excel(file_bytes):
     full_text = " ".join([str(x) for row in df.values for x in row if pd.notna(x)]).lower()
 
     # Sinf
-    m = re.search(r"\b(\d{1,2})-([a-zA-ZР°-СЏРђ-РЇ])\b", full_text)
+    m = re.search(r"\b(\d{1,2})-([a-zA-Zа-яА-Я])\b", full_text)
     if m:
         result["sinf"] = f"{m.group(1)}-{m.group(2).upper()}"
 
@@ -501,20 +501,20 @@ def fill_chorak_block(ws, chorak_num: int, data: dict):
     ws.cell(row=teacher_row, column=7).value = data["oqituvchi"]
 
     # O'quvchilar ma'lumotlari
-    # 1-chorakda o'quvchilar Row 6 dan boshlanadi в†’ base+5
+    # 1-chorakda o'quvchilar Row 6 dan boshlanadi → base+5
     student_start = base + 5  # Row 6 (1-chorakda)
 
     for i, st in enumerate(data["students"]):
         row = student_start + i
         ws.cell(row=row, column=2).value = st["name"]
 
-        # BSB ustunlari: col D, E, F (4, 5, 6) вЂ” faqat birinchi 3 ta
+        # BSB ustunlari: col D, E, F (4, 5, 6) — faqat birinchi 3 ta
         bsb_cols = [4, 5, 6]
         for j, bsb_val in enumerate(st["bsb_balls"][:3]):
             if bsb_val is not None:
                 ws.cell(row=row, column=bsb_cols[j]).value = bsb_val
 
-        # LI/Lab: col G (7) вЂ” bo'sh qoldiramiz (import faylda ko'pincha yo'q)
+        # LI/Lab: col G (7) — bo'sh qoldiramiz (import faylda ko'pincha yo'q)
         # FB: col H (8)
         if st["fb"] is not None:
             ws.cell(row=row, column=8).value = st["fb"]
@@ -697,12 +697,12 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
     else:
         status, not_subbed = await check_mandatory_subs(user_id)
         if not status:
-            await message.answer("вљ пёЏ Botdan foydalanish uchun quyidagi kanallarga obuna bo'lishingiz shart:", reply_markup=get_sub_kb(not_subbed))
+            await message.answer("⚠️ Botdan foydalanish uchun quyidagi kanallarga obuna bo'lishingiz shart:", reply_markup=get_sub_kb(not_subbed))
             return
         pending = get_pending_files(user_id)
         await message.answer(
-            f"Assalomu alaykum yana bir bor! рџ‘‹\n\n"
-            f"рџ“Ѓ Hozirda saqlangan fayllar: <b>{len(pending)} ta</b>\n\n"
+            f"Assalomu alaykum yana bir bor! 👋\n\n"
+            f"📁 Hozirda saqlangan fayllar: <b>{len(pending)} ta</b>\n\n"
             f"Excel faylingizni yuboring yoki hisobot tayyorlash uchun tugmani bosing.",
             reply_markup=get_main_kb(), parse_mode="HTML"
         )
@@ -725,7 +725,7 @@ async def process_name(message: types.Message, state: FSMContext):
 @dp.message(RegState.phone)
 async def process_phone(message: types.Message, state: FSMContext):
     if not message.contact:
-        await message.answer("Iltimos, 'рџ“ћ Telefon raqamni yuborish' tugmasini bosing.")
+        await message.answer("Iltimos, '📞 Telefon raqamni yuborish' tugmasini bosing.")
         return
     data = await state.get_data()
     user_id = message.from_user.id
@@ -736,33 +736,33 @@ async def process_phone(message: types.Message, state: FSMContext):
     if data.get('referrer_id'):
         execute_query("UPDATE users SET referrals_count = referrals_count + 1 WHERE user_id = ?", (data['referrer_id'],))
         try:
-            await bot.send_message(data['referrer_id'], f"рџЋ‰ Sizning taklifingiz orqali {data['full_name']} botga qo'shildi!")
+            await bot.send_message(data['referrer_id'], f"🎉 Sizning taklifingiz orqali {data['full_name']} botga qo'shildi!")
         except:
             pass
     await state.clear()
     status, not_subbed = await check_mandatory_subs(user_id)
     if not status:
-        await message.answer("вњ… Ro'yxatdan o'tdingiz!\n\nBotdan foydalanish uchun kanallarga obuna bo'ling:", reply_markup=get_sub_kb(not_subbed))
+        await message.answer("✅ Ro'yxatdan o'tdingiz!\n\nBotdan foydalanish uchun kanallarga obuna bo'ling:", reply_markup=get_sub_kb(not_subbed))
         return
-    await message.answer("вњ… Ro'yxatdan muvaffaqiyatli o'tdingiz!\n\nEndi Excel hisobot faylingizni yuborishingiz mumkin.", reply_markup=get_main_kb())
+    await message.answer("✅ Ro'yxatdan muvaffaqiyatli o'tdingiz!\n\nEndi Excel hisobot faylingizni yuborishingiz mumkin.", reply_markup=get_main_kb())
 
 # =======================================================
 # ASOSIY TUGMALAR
 # =======================================================
-@dp.message(F.text == "вќ“ Bot qanday ishlaydi")
+@dp.message(F.text == "❓ Bot qanday ishlaydi")
 async def bot_how_it_works(message: types.Message):
     text = (
-        "рџ“Њ <b>Bot qanday ishlaydi:</b>\n\n"
-        "1пёЏвѓЈ <b>Import faylni yuboring</b> вЂ” sinf jurnali (.xls yoki .xlsx)\n"
-        "2пёЏвѓЈ <b>Bir nechta fayl yuborishingiz mumkin</b> вЂ” turli sinflar, fanlar va choraklar\n"
-        "3пёЏвѓЈ <b>'Hisobot tayyorla'</b> tugmasini bosing вЂ” barcha fayllardan yagona hisobot\n"
-        "4пёЏвѓЈ Hisobot tayyor bo'lgach, fayllar avtomatik tozalanadi\n\n"
-        "рџ“Љ <b>Sheet nomlash:</b> sinf + fan qisqartmasi (masalan: 5-B_tarix)\n"
-        "рџ“‹ <b>Tahlil:</b> oxirgi 'tahlil' listida barcha sinf/fanlar bo'yicha umumiy tahlil"
+        "📌 <b>Bot qanday ishlaydi:</b>\n\n"
+        "1️⃣ <b>Import faylni yuboring</b> — sinf jurnali (.xls yoki .xlsx)\n"
+        "2️⃣ <b>Bir nechta fayl yuborishingiz mumkin</b> — turli sinflar, fanlar va choraklar\n"
+        "3️⃣ <b>'Hisobot tayyorla'</b> tugmasini bosing — barcha fayllardan yagona hisobot\n"
+        "4️⃣ Hisobot tayyor bo'lgach, fayllar avtomatik tozalanadi\n\n"
+        "📊 <b>Sheet nomlash:</b> sinf + fan qisqartmasi (masalan: 5-B_tarix)\n"
+        "📋 <b>Tahlil:</b> oxirgi 'tahlil' listida barcha sinf/fanlar bo'yicha umumiy tahlil"
     )
     await message.answer(text, parse_mode="HTML")
 
-@dp.message(F.text == "рџ“Љ Mening profilim va Referal")
+@dp.message(F.text == "📊 Mening profilim va Referal")
 async def show_profile(message: types.Message):
     user = execute_query("SELECT files_processed, referrals_count, is_vip FROM users WHERE user_id = ?", (message.from_user.id,), fetch=True)
     if not user:
@@ -772,69 +772,69 @@ async def show_profile(message: types.Message):
     ref_link = f"https://t.me/{bot_info.username}?start={message.from_user.id}"
     ref_bonus = int(get_setting('referral_bonus', 3))
     max_files = 3 + (referrals_count * ref_bonus)
-    status_text = "рџЊџ VIP" if is_vip else "Oddiy"
+    status_text = "🌟 VIP" if is_vip else "Oddiy"
     limit_text = "Cheksiz (VIP)" if is_vip else f"{max_files} ta (Hozircha: {files_processed} ta)"
     text = (
-        f"рџ‘¤ <b>Sizning profilingiz:</b>\n\n"
-        f"рџ’Ћ Status: <b>{status_text}</b>\n"
-        f"рџ“‚ Ishlangan fayllar: <b>{files_processed} ta</b>\n"
-        f"рџ“€ Joriy limit: <b>{limit_text}</b>\n"
-        f"рџ‘Ґ Taklif qilingan do'stlar: <b>{referrals_count} ta</b>\n\n"
-        f"рџ“Њ <i>Har bir taklif uchun +{ref_bonus} ta fayl imkoniyati!</i>\n\n"
-        f"рџ”— <b>Taklif havolangiz:</b>\n{ref_link}"
+        f"👤 <b>Sizning profilingiz:</b>\n\n"
+        f"💎 Status: <b>{status_text}</b>\n"
+        f"📂 Ishlangan fayllar: <b>{files_processed} ta</b>\n"
+        f"📈 Joriy limit: <b>{limit_text}</b>\n"
+        f"👥 Taklif qilingan do'stlar: <b>{referrals_count} ta</b>\n\n"
+        f"📌 <i>Har bir taklif uchun +{ref_bonus} ta fayl imkoniyati!</i>\n\n"
+        f"🔗 <b>Taklif havolangiz:</b>\n{ref_link}"
     )
     await message.answer(text, parse_mode="HTML")
 
-@dp.message(F.text == "рџ“‹ Yuklangan fayllar ro'yxati")
+@dp.message(F.text == "📋 Yuklangan fayllar ro'yxati")
 async def show_pending_list(message: types.Message):
     user_id = message.from_user.id
     pending = get_pending_files(user_id)
     if not pending:
-        await message.answer("рџ“­ Hozirda saqlangan fayllar yo'q.\n\nExcel fayllarini yuboring, keyin 'Hisobot tayyorla' tugmasini bosing.")
+        await message.answer("📭 Hozirda saqlangan fayllar yo'q.\n\nExcel fayllarini yuboring, keyin 'Hisobot tayyorla' tugmasini bosing.")
         return
-    text = f"рџ“‹ <b>Saqlangan fayllar ({len(pending)} ta):</b>\n\n"
+    text = f"📋 <b>Saqlangan fayllar ({len(pending)} ta):</b>\n\n"
     for row in pending:
         file_id, file_name, sinf, fan, chorak, oqituvchi, sheet_key = row
-        text += f"рџ“„ <b>{sheet_key}</b> вЂ” {chorak}-chorak\n"
+        text += f"📄 <b>{sheet_key}</b> — {chorak}-chorak\n"
         text += f"   Sinf: {sinf} | Fan: {fan}\n"
         oq = oqituvchi or "noma'lum"
         text += f"   O'qituvchi: {oq}\n\n"
-    text += "\nвњ… Hisobot tayyorlash uchun tugmani bosing."
+    text += "\n✅ Hisobot tayyorlash uchun tugmani bosing."
     await message.answer(text, parse_mode="HTML")
 
-@dp.message(F.text == "рџ—‘ Fayllarni tozalash")
+@dp.message(F.text == "🗑 Fayllarni tozalash")
 async def clear_files_handler(message: types.Message):
     user_id = message.from_user.id
     pending = get_pending_files(user_id)
     if not pending:
-        await message.answer("рџ“­ Tozalanadigan fayl yo'q.")
+        await message.answer("📭 Tozalanadigan fayl yo'q.")
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="вњ… Ha, o'chirish", callback_data="confirm_clear"),
-        InlineKeyboardButton(text="вќЊ Bekor qilish", callback_data="cancel_clear")
+        InlineKeyboardButton(text="✅ Ha, o'chirish", callback_data="confirm_clear"),
+        InlineKeyboardButton(text="❌ Bekor qilish", callback_data="cancel_clear")
     ]])
-    await message.answer(f"вљ пёЏ {len(pending)} ta saqlangan fayl o'chirilsinmi?", reply_markup=kb)
+    await message.answer(f"⚠️ {len(pending)} ta saqlangan fayl o'chirilsinmi?", reply_markup=kb)
 
 @dp.callback_query(F.data == "confirm_clear")
 async def confirm_clear(call: types.CallbackQuery):
     clear_pending_files(call.from_user.id)
-    await call.message.edit_text("вњ… Barcha fayllar o'chirildi.")
+    await call.message.edit_text("✅ Barcha fayllar o'chirildi.")
 
 @dp.callback_query(F.data == "cancel_clear")
 async def cancel_clear(call: types.CallbackQuery):
-    await call.message.edit_text("вќЊ Bekor qilindi.")
+    await call.message.edit_text("❌ Bekor qilindi.")
 
 # =======================================================
 # HISOBOT TAYYORLASH
 # =======================================================
-@dp.message(F.text == "вњ… Hisobot tayyorla")
+@dp.message(F.text == "✅ Hisobot tayyorla")
 async def generate_report_handler(message: types.Message):
     user_id = message.from_user.id
 
     if not is_admin(user_id):
         status, not_subbed = await check_mandatory_subs(user_id)
         if not status:
-            await message.answer("вљ пёЏ Botdan foydalanish uchun kanallarga obuna bo'lishingiz shart:", reply_markup=get_sub_kb(not_subbed))
+            await message.answer("⚠️ Botdan foydalanish uchun kanallarga obuna bo'lishingiz shart:", reply_markup=get_sub_kb(not_subbed))
             return
         user = execute_query("SELECT files_processed, referrals_count, is_vip FROM users WHERE user_id = ?", (user_id,), fetch=True)
         if not user:
@@ -847,17 +847,17 @@ async def generate_report_handler(message: types.Message):
             bot_info = await bot.get_me()
             ref_link = f"https://t.me/{bot_info.username}?start={user_id}"
             await message.answer(
-                f"вљ пёЏ <b>Limitingiz tugadi!</b>\n\nDo'stlarni taklif qiling. Har bir taklif uchun <b>+{ref_bonus} ta</b> imkoniyat.\n\nрџ”— {ref_link}",
+                f"⚠️ <b>Limitingiz tugadi!</b>\n\nDo'stlarni taklif qiling. Har bir taklif uchun <b>+{ref_bonus} ta</b> imkoniyat.\n\n🔗 {ref_link}",
                 parse_mode="HTML"
             )
             return
 
     pending = get_pending_files(user_id)
     if not pending:
-        await message.answer("рџ“­ Hozirda saqlangan fayllar yo'q.\n\nAvval Excel fayllarini yuboring.")
+        await message.answer("📭 Hozirda saqlangan fayllar yo'q.\n\nAvval Excel fayllarini yuboring.")
         return
 
-    msg = await message.answer(f"вЏі {len(pending)} ta fayl asosida hisobot tayyorlanmoqda...")
+    msg = await message.answer(f"⏳ {len(pending)} ta fayl asosida hisobot tayyorlanmoqda...")
 
     try:
         output_bytes = await asyncio.to_thread(generate_report, pending)
@@ -870,7 +870,7 @@ async def generate_report_handler(message: types.Message):
         doc = types.BufferedInputFile(output_bytes, filename=output_filename)
         await message.answer_document(
             document=doc,
-            caption=f"вњ… Hisobot tayyor!\nрџ“Љ Jami {len(pending)} ta fayl asosida tayyorlandi."
+            caption=f"✅ Hisobot tayyor!\n📊 Jami {len(pending)} ta fayl asosida tayyorlandi."
         )
 
         # Statistika yangilash
@@ -878,10 +878,10 @@ async def generate_report_handler(message: types.Message):
 
         # SQLite tozalash (xotira tejash)
         clear_pending_files(user_id)
-        await message.answer("рџ—‘ Saqlangan fayllar xotiradan tozalandi.", reply_markup=get_main_kb())
+        await message.answer("🗑 Saqlangan fayllar xotiradan tozalandi.", reply_markup=get_main_kb())
 
     except Exception as e:
-        await message.answer(f"вќЊ Xatolik yuz berdi:\n{str(e)}\n\nFayl tuzilishini tekshiring.")
+        await message.answer(f"❌ Xatolik yuz berdi:\n{str(e)}\n\nFayl tuzilishini tekshiring.")
         logging.exception(f"Hisobot generatsiya xatosi: {e}")
     finally:
         await msg.delete()
@@ -890,7 +890,7 @@ async def generate_report_handler(message: types.Message):
 # EXCEL FAYL QABUL QILISH
 # =======================================================
 async def loading_animation(msg: types.Message, stop_event: asyncio.Event):
-    frames = ["рџ“Ґ Fayl qabul qilindi, tahlil qilinmoqda.", "рџ“Ґ Fayl qabul qilindi, tahlil qilinmoqda..", "рџ“Ґ Fayl qabul qilindi, tahlil qilinmoqda..."]
+    frames = ["📥 Fayl qabul qilindi, tahlil qilinmoqda.", "📥 Fayl qabul qilindi, tahlil qilinmoqda..", "📥 Fayl qabul qilindi, tahlil qilinmoqda..."]
     i = 0
     while not stop_event.is_set():
         try:
@@ -907,7 +907,7 @@ async def handle_excel_document(message: types.Message):
     if not is_admin(user_id):
         status, not_subbed = await check_mandatory_subs(user_id)
         if not status:
-            await message.answer("вљ пёЏ Botdan foydalanish uchun kanallarga obuna bo'lishingiz shart:", reply_markup=get_sub_kb(not_subbed))
+            await message.answer("⚠️ Botdan foydalanish uchun kanallarga obuna bo'lishingiz shart:", reply_markup=get_sub_kb(not_subbed))
             return
         user = execute_query("SELECT files_processed, referrals_count, is_vip FROM users WHERE user_id = ?", (user_id,), fetch=True)
         if not user:
@@ -920,7 +920,7 @@ async def handle_excel_document(message: types.Message):
             bot_info = await bot.get_me()
             ref_link = f"https://t.me/{bot_info.username}?start={user_id}"
             await message.answer(
-                f"вљ пёЏ <b>Limitingiz tugadi!</b>\n\nDo'stlarni taklif qiling. +{ref_bonus} ta imkoniyat.\n\nрџ”— {ref_link}",
+                f"⚠️ <b>Limitingiz tugadi!</b>\n\nDo'stlarni taklif qiling. +{ref_bonus} ta imkoniyat.\n\n🔗 {ref_link}",
                 parse_mode="HTML"
             )
             return
@@ -930,7 +930,7 @@ async def handle_excel_document(message: types.Message):
         await message.answer("Iltimos, faqat Excel (.xlsx yoki .xls) fayl yuboring.")
         return
 
-    msg = await message.answer("рџ“Ґ Fayl qabul qilindi, tahlil qilinmoqda...")
+    msg = await message.answer("📥 Fayl qabul qilindi, tahlil qilinmoqda...")
     stop_anim = asyncio.Event()
     anim_task = asyncio.create_task(loading_animation(msg, stop_anim))
 
@@ -961,15 +961,15 @@ async def handle_excel_document(message: types.Message):
         sheet_key = make_sheet_name(sinf, fan)
 
         await message.answer(
-            f"вњ… <b>Fayl saqlandi!</b>\n\n"
-            f"рџ“љ Fan: <b>{fan}</b>\n"
-            f"рџЏ« Sinf: <b>{sinf}</b>\n"
-            f"рџ“… Chorak: <b>{chorak}</b>\n"
-            f"рџ‘ЁвЂЌрџЏ« O'qituvchi: <b>{oqituvchi}</b>\n"
-            f"рџ‘Ґ O'quvchilar: <b>{student_count} ta</b>\n"
-            f"рџЏ· List nomi: <b>{sheet_key}</b>\n\n"
-            f"рџ“‹ Jami saqlangan fayllar: <b>{len(pending)} ta</b>\n\n"
-            f"Yana fayl yuboring yoki <b>'вњ… Hisobot tayyorla'</b> tugmasini bosing.",
+            f"✅ <b>Fayl saqlandi!</b>\n\n"
+            f"📚 Fan: <b>{fan}</b>\n"
+            f"🏫 Sinf: <b>{sinf}</b>\n"
+            f"📅 Chorak: <b>{chorak}</b>\n"
+            f"👨‍🏫 O'qituvchi: <b>{oqituvchi}</b>\n"
+            f"👥 O'quvchilar: <b>{student_count} ta</b>\n"
+            f"🏷 List nomi: <b>{sheet_key}</b>\n\n"
+            f"📋 Jami saqlangan fayllar: <b>{len(pending)} ta</b>\n\n"
+            f"Yana fayl yuboring yoki <b>'✅ Hisobot tayyorla'</b> tugmasini bosing.",
             parse_mode="HTML", reply_markup=get_main_kb()
         )
 
@@ -978,7 +978,7 @@ async def handle_excel_document(message: types.Message):
         await anim_task
         await msg.delete()
         await message.answer(
-            f"вќЊ Faylni tahlil qilishda xatolik:\n<code>{str(e)}</code>\n\n"
+            f"❌ Faylni tahlil qilishda xatolik:\n<code>{str(e)}</code>\n\n"
             f"Fayl tuzilishi to'g'riligini tekshiring.",
             parse_mode="HTML"
         )
@@ -990,7 +990,7 @@ async def handle_excel_document(message: types.Message):
 @dp.message(Command("admin"))
 async def cmd_admin(message: types.Message):
     if not is_admin(message.from_user.id): return
-    await message.answer("рџ‘ЁвЂЌрџ’» <b>Admin Panelga xush kelibsiz!</b>\n\nQuyidagi menyulardan birini tanlang:",
+    await message.answer("👨‍💻 <b>Admin Panelga xush kelibsiz!</b>\n\nQuyidagi menyulardan birini tanlang:",
                          reply_markup=get_admin_kb(), parse_mode="HTML")
 
 @dp.callback_query(F.data.startswith("admin_"))
@@ -1001,7 +1001,7 @@ async def admin_callbacks(call: types.CallbackQuery, state: FSMContext):
     if action == "users":
         total_users = execute_query("SELECT COUNT(*) FROM users", fetch=True)[0]
         recent = execute_query("SELECT full_name, phone FROM users ORDER BY joined_at DESC LIMIT 10", fetchall=True)
-        text = f"рџ‘Ґ <b>Barcha foydalanuvchilar: {total_users} ta</b>\n\n<b>So'nggi 10:</b>\n"
+        text = f"👥 <b>Barcha foydalanuvchilar: {total_users} ta</b>\n\n<b>So'nggi 10:</b>\n"
         for idx, u in enumerate(recent, 1): text += f"{idx}. {u[0]} - {u[1]}\n"
         await call.message.edit_text(text, parse_mode="HTML", reply_markup=get_admin_kb())
 
@@ -1012,56 +1012,56 @@ async def admin_callbacks(call: types.CallbackQuery, state: FSMContext):
         region_stats = execute_query("SELECT region, COUNT(*) FROM users GROUP BY region ORDER BY COUNT(*) DESC LIMIT 5", fetchall=True)
         total_pending = execute_query("SELECT COUNT(*) FROM pending_files", fetch=True)[0]
         conversion = round((active_users / total_users * 100) if total_users > 0 else 0, 1)
-        text = (f"рџ“Љ <b>BOT STATISTIKASI</b>\n\n"
-                f"рџ‘Ґ Umumiy: <b>{total_users}</b>\n"
-                f"рџ“Ѓ Jami ishlangan: <b>{total_files}</b>\n"
-                f"вњ… Faol foydalanuvchilar: <b>{active_users} ({conversion}%)</b>\n"
-                f"вЏі Kutilayotgan fayllar: <b>{total_pending}</b>\n\n"
-                f"рџЊЌ <b>Top 5 hudud:</b>\n")
-        for r in region_stats: text += f"вћ– {r[0]}: {r[1]} ta\n"
+        text = (f"📊 <b>BOT STATISTIKASI</b>\n\n"
+                f"👥 Umumiy: <b>{total_users}</b>\n"
+                f"📁 Jami ishlangan: <b>{total_files}</b>\n"
+                f"✅ Faol foydalanuvchilar: <b>{active_users} ({conversion}%)</b>\n"
+                f"⏳ Kutilayotgan fayllar: <b>{total_pending}</b>\n\n"
+                f"🌍 <b>Top 5 hudud:</b>\n")
+        for r in region_stats: text += f"➖ {r[0]}: {r[1]} ta\n"
         await call.message.edit_text(text, parse_mode="HTML", reply_markup=get_admin_kb())
 
     elif action == "channels":
         channels = execute_query("SELECT id, name, chat_id FROM channels", fetchall=True)
-        text = "рџ“ў <b>Majburiy kanallar:</b>\n\n"
+        text = "📢 <b>Majburiy kanallar:</b>\n\n"
         for ch in channels: text += f"ID: {ch[0]} | Nomi: {ch[1]} | ChatID: {ch[2]}\n"
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="вћ• Qo'shish", callback_data="admin_addchan"),
-             InlineKeyboardButton(text="вћ– O'chirish", callback_data="admin_delchan")],
-            [InlineKeyboardButton(text="рџ”™ Orqaga", callback_data="admin_back")]
+            [InlineKeyboardButton(text="➕ Qo'shish", callback_data="admin_addchan"),
+             InlineKeyboardButton(text="➖ O'chirish", callback_data="admin_delchan")],
+            [InlineKeyboardButton(text="🔙 Orqaga", callback_data="admin_back")]
         ])
         await call.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
 
     elif action == "vips":
         vips = execute_query("SELECT user_id, full_name FROM users WHERE is_vip=1", fetchall=True)
-        text = "рџЊџ <b>VIP Foydalanuvchilar:</b>\n\n"
+        text = "🌟 <b>VIP Foydalanuvchilar:</b>\n\n"
         if not vips: text += "Hech kim yo'q."
         else:
             for v in vips: text += f"ID: <code>{v[0]}</code> | {v[1]}\n"
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="вћ• VIP qo'shish", callback_data="admin_addvip"),
-             InlineKeyboardButton(text="вћ– VIP olish", callback_data="admin_delvip")],
-            [InlineKeyboardButton(text="рџ”™ Orqaga", callback_data="admin_back")]
+            [InlineKeyboardButton(text="➕ VIP qo'shish", callback_data="admin_addvip"),
+             InlineKeyboardButton(text="➖ VIP olish", callback_data="admin_delvip")],
+            [InlineKeyboardButton(text="🔙 Orqaga", callback_data="admin_back")]
         ])
         await call.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
 
     elif action == "admins":
         admins_db = execute_query("SELECT user_id FROM admins", fetchall=True)
-        text = "рџ‘ЁвЂЌрџ’» <b>Bot Adminlari:</b>\n\n"
+        text = "👨‍💻 <b>Bot Adminlari:</b>\n\n"
         for aid in MASTER_ADMINS:
-            text += f"рџ‘‘ <code>{aid}</code> (Asosiy Admin)\n"
+            text += f"👑 <code>{aid}</code> (Asosiy Admin)\n"
         for adm in admins_db:
-            text += f"рџ‘¤ <code>{adm[0]}</code> (Qo'shimcha Admin)\n"
+            text += f"👤 <code>{adm[0]}</code> (Qo'shimcha Admin)\n"
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="вћ• Admin qo'shish", callback_data="admin_addadmin"),
-             InlineKeyboardButton(text="вћ– Admin o'chirish", callback_data="admin_deladmin")],
-            [InlineKeyboardButton(text="рџ”™ Orqaga", callback_data="admin_back")]
+            [InlineKeyboardButton(text="➕ Admin qo'shish", callback_data="admin_addadmin"),
+             InlineKeyboardButton(text="➖ Admin o'chirish", callback_data="admin_deladmin")],
+            [InlineKeyboardButton(text="🔙 Orqaga", callback_data="admin_back")]
         ])
         await call.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
 
     elif action == "set_ref":
         current_bonus = get_setting('referral_bonus', 3)
-        await call.message.edit_text(f"вљ™пёЏ Hozirgi referal bonus: <b>{current_bonus} ta fayl</b>.\n\nYangi sonni yuboring:", parse_mode="HTML")
+        await call.message.edit_text(f"⚙️ Hozirgi referal bonus: <b>{current_bonus} ta fayl</b>.\n\nYangi sonni yuboring:", parse_mode="HTML")
         await state.set_state(AdminState.set_ref_bonus)
 
     elif action == "addchan":
@@ -1093,7 +1093,7 @@ async def admin_callbacks(call: types.CallbackQuery, state: FSMContext):
         await state.set_state(AdminState.broadcast_msg)
 
     elif action == "back":
-        await call.message.edit_text("рџ‘ЁвЂЌрџ’» <b>Admin Panel</b>", reply_markup=get_admin_kb(), parse_mode="HTML")
+        await call.message.edit_text("👨‍💻 <b>Admin Panel</b>", reply_markup=get_admin_kb(), parse_mode="HTML")
 
 @dp.message(Command("cancel"))
 async def cancel_admin_state(message: types.Message, state: FSMContext):
@@ -1106,45 +1106,45 @@ async def process_add_channel(message: types.Message, state: FSMContext):
     try:
         chat_id, name, url = [x.strip() for x in message.text.split("|")]
         execute_query("INSERT INTO channels (chat_id, name, url) VALUES (?, ?, ?)", (chat_id, name, url))
-        await message.answer(f"вњ… Kanal qo'shildi: {name}", reply_markup=get_admin_kb())
-        await message.answer("вљ пёЏ Bot ushbu kanalga ADMIN qilinishi shart!")
+        await message.answer(f"✅ Kanal qo'shildi: {name}", reply_markup=get_admin_kb())
+        await message.answer("⚠️ Bot ushbu kanalga ADMIN qilinishi shart!")
     except Exception:
-        await message.answer("вќЊ Noto'g'ri format! `ChatID | Nomi | Ssilka`")
+        await message.answer("❌ Noto'g'ri format! `ChatID | Nomi | Ssilka`")
     await state.clear()
 
 @dp.message(AdminState.del_channel)
 async def process_del_channel(message: types.Message, state: FSMContext):
     execute_query("DELETE FROM channels WHERE id = ?", (message.text,))
-    await message.answer("вњ… Kanal o'chirildi.", reply_markup=get_admin_kb())
+    await message.answer("✅ Kanal o'chirildi.", reply_markup=get_admin_kb())
     await state.clear()
 
 @dp.message(AdminState.set_ref_bonus)
 async def process_set_ref_bonus(message: types.Message, state: FSMContext):
     if message.text.isdigit():
         execute_query("UPDATE settings SET value = ? WHERE key = 'referral_bonus'", (message.text,))
-        await message.answer(f"вњ… Referal bonus: har taklif uchun {message.text} ta fayl.", reply_markup=get_admin_kb())
+        await message.answer(f"✅ Referal bonus: har taklif uchun {message.text} ta fayl.", reply_markup=get_admin_kb())
     else:
-        await message.answer("вќЊ Faqat raqam yuboring.")
+        await message.answer("❌ Faqat raqam yuboring.")
     await state.clear()
 
 @dp.message(AdminState.add_vip)
 async def process_add_vip(message: types.Message, state: FSMContext):
     if message.text.isdigit():
         execute_query("UPDATE users SET is_vip = 1 WHERE user_id = ?", (message.text,))
-        await message.answer(f"вњ… {message.text} VIP qilindi.", reply_markup=get_admin_kb())
-        try: await bot.send_message(int(message.text), "рџЋ‰ Siz VIP qilib belgilandingiz!")
+        await message.answer(f"✅ {message.text} VIP qilindi.", reply_markup=get_admin_kb())
+        try: await bot.send_message(int(message.text), "🎉 Siz VIP qilib belgilandingiz!")
         except: pass
     else:
-        await message.answer("вќЊ Faqat raqam yuboring.")
+        await message.answer("❌ Faqat raqam yuboring.")
     await state.clear()
 
 @dp.message(AdminState.del_vip)
 async def process_del_vip(message: types.Message, state: FSMContext):
     if message.text.isdigit():
         execute_query("UPDATE users SET is_vip = 0 WHERE user_id = ?", (message.text,))
-        await message.answer(f"вњ… {message.text} VIP olib tashlandi.", reply_markup=get_admin_kb())
+        await message.answer(f"✅ {message.text} VIP olib tashlandi.", reply_markup=get_admin_kb())
     else:
-        await message.answer("вќЊ Faqat raqam yuboring.")
+        await message.answer("❌ Faqat raqam yuboring.")
     await state.clear()
 
 @dp.message(AdminState.add_admin)
@@ -1152,14 +1152,14 @@ async def process_add_admin(message: types.Message, state: FSMContext):
     if message.text.isdigit():
         new_id = int(message.text)
         if new_id in MASTER_ADMINS:
-            await message.answer("вљ пёЏ Bu foydalanuvchi allaqachon Asosiy Admin.")
+            await message.answer("⚠️ Bu foydalanuvchi allaqachon Asosiy Admin.")
         else:
             execute_query("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (new_id,))
-            await message.answer(f"вњ… {new_id} admin qilindi.", reply_markup=get_admin_kb())
-            try: await bot.send_message(new_id, "рџЋ‰ Siz admin qilib tayinlandingiz! /admin")
+            await message.answer(f"✅ {new_id} admin qilindi.", reply_markup=get_admin_kb())
+            try: await bot.send_message(new_id, "🎉 Siz admin qilib tayinlandingiz! /admin")
             except: pass
     else:
-        await message.answer("вќЊ Faqat raqam yuboring.")
+        await message.answer("❌ Faqat raqam yuboring.")
     await state.clear()
 
 @dp.message(AdminState.del_admin)
@@ -1167,19 +1167,19 @@ async def process_del_admin(message: types.Message, state: FSMContext):
     if message.text.isdigit():
         del_id = int(message.text)
         if del_id in MASTER_ADMINS:
-            await message.answer("вќЊ Asosiy adminni o'chirib bo'lmaydi.", reply_markup=get_admin_kb())
+            await message.answer("❌ Asosiy adminni o'chirib bo'lmaydi.", reply_markup=get_admin_kb())
         else:
             execute_query("DELETE FROM admins WHERE user_id = ?", (del_id,))
-            await message.answer(f"вњ… {del_id} adminlikdan olib tashlandi.", reply_markup=get_admin_kb())
+            await message.answer(f"✅ {del_id} adminlikdan olib tashlandi.", reply_markup=get_admin_kb())
     else:
-        await message.answer("вќЊ Faqat raqam yuboring.")
+        await message.answer("❌ Faqat raqam yuboring.")
     await state.clear()
 
 @dp.message(AdminState.broadcast_msg)
 async def process_broadcast(message: types.Message, state: FSMContext):
     users = execute_query("SELECT user_id FROM users", fetchall=True)
     sent_count = 0
-    msg = await message.answer("вЏі Tarqatilmoqda...")
+    msg = await message.answer("⏳ Tarqatilmoqda...")
     for u in users:
         try:
             await message.copy_to(u[0])
@@ -1188,7 +1188,7 @@ async def process_broadcast(message: types.Message, state: FSMContext):
         except: pass
     await msg.delete()
     await state.clear()
-    await message.answer(f"вњ… <b>{sent_count}</b> ta foydalanuvchiga yuborildi!", parse_mode="HTML", reply_markup=get_admin_kb())
+    await message.answer(f"✅ <b>{sent_count}</b> ta foydalanuvchiga yuborildi!", parse_mode="HTML", reply_markup=get_admin_kb())
 
 # =======================================================
 # BOTNI ISHGA TUSHIRISH
