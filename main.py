@@ -472,6 +472,18 @@ def parse_import_excel(file_bytes):
 # =======================================================
 BLOCK_SIZE = 49  # Har bir chorak bloki (1-49, 50-98, ...)
 
+def safe_write(ws, row, col, value):
+    """Merged cell ga yozishdan himoyalanib qiymat yozadi."""
+    from openpyxl.cell.cell import MergedCell
+    cell = ws.cell(row=row, column=col)
+    if isinstance(cell, MergedCell):
+        for rng in ws.merged_cells.ranges:
+            if rng.min_row <= row <= rng.max_row and rng.min_col <= col <= rng.max_col:
+                ws.cell(row=rng.min_row, column=rng.min_col).value = value
+                return
+        return
+    cell.value = value
+
 def chorak_row_offset(chorak_num: int) -> int:
     """N-chorak blokining boshlanish qatori (1-indexed)."""
     return (chorak_num - 1) * BLOCK_SIZE + 1
@@ -487,16 +499,16 @@ def fill_chorak_block(ws, chorak_num: int, data: dict):
     # Metadata qatorlari (base+1 = Row 2 ga mos)
     meta_row = base + 1  # Row 2
 
-    ws.cell(row=meta_row, column=2).value = "fan"
-    ws.cell(row=meta_row, column=3).value = data["fan"]
-    ws.cell(row=meta_row, column=4).value = "chorak"
-    ws.cell(row=meta_row, column=5).value = data["chorak"]
-    ws.cell(row=meta_row, column=6).value = "sinf "
-    ws.cell(row=meta_row, column=7).value = data["sinf"]
+    safe_write(ws, meta_row, 2, "fan")
+    safe_write(ws, meta_row, 3, data["fan"])
+    safe_write(ws, meta_row, 4, "chorak")
+    safe_write(ws, meta_row, 5, data["chorak"])
+    safe_write(ws, meta_row, 6, "sinf ")
+    safe_write(ws, meta_row, 7, data["sinf"])
 
     # O'qituvchi ismi (base+47 = Row 48 ga mos)
     teacher_row = base + 47
-    ws.cell(row=teacher_row, column=7).value = data["oqituvchi"]
+    safe_write(ws, teacher_row, 7, data["oqituvchi"])
 
     # O'quvchilar ma'lumotlari
     # 1-chorakda o'quvchilar Row 6 dan boshlanadi → base+5
@@ -504,30 +516,30 @@ def fill_chorak_block(ws, chorak_num: int, data: dict):
 
     for i, st in enumerate(data["students"]):
         row = student_start + i
-        ws.cell(row=row, column=2).value = st["name"]
+        safe_write(ws, row, 2, st["name"])
 
         # BSB ustunlari: col D, E, F (4, 5, 6) — faqat birinchi 3 ta
         bsb_cols = [4, 5, 6]
         for j, bsb_val in enumerate(st["bsb_balls"][:3]):
             if bsb_val is not None:
-                ws.cell(row=row, column=bsb_cols[j]).value = bsb_val
+                safe_write(ws, row, bsb_cols[j], bsb_val)
 
         # LI/Lab: col G (7) — bo'sh qoldiramiz (import faylda ko'pincha yo'q)
         # FB: col H (8)
         if st["fb"] is not None:
-            ws.cell(row=row, column=8).value = st["fb"]
+            safe_write(ws, row, 8, st["fb"])
 
         # CHSB: col I (9)
         if st["chsb"] is not None:
-            ws.cell(row=row, column=9).value = st["chsb"]
+            safe_write(ws, row, 9, st["chsb"])
 
         # Jami ball: col J (10)
         if st["total"] is not None:
-            ws.cell(row=row, column=10).value = st["total"]
+            safe_write(ws, row, 10, st["total"])
 
         # Chorak bahosi: col O (15)
         if st["chorak_baho"] is not None:
-            ws.cell(row=row, column=15).value = st["chorak_baho"]
+            safe_write(ws, row, 15, st["chorak_baho"])
 
 def generate_report(pending_rows: list) -> bytes:
     """
@@ -620,7 +632,7 @@ def _update_tahlil_sheet(ws, groups: dict, sheet_map: dict):
     # Avval mavjud ma'lumot qatorlarini tozalaymiz (6-qatordan 50-gacha)
     for r in range(data_start_row, data_start_row + 30):
         for c in range(1, 15):
-            ws.cell(row=r, column=c).value = None
+            safe_write(ws, r, c, None)
 
     oqituvchi_name = None
 
@@ -674,9 +686,9 @@ def _update_tahlil_sheet(ws, groups: dict, sheet_map: dict):
     ws.cell(row=umumiy_row, column=10).value = f"=IF(ISBLANK(I{umumiy_row}),\"\",I{umumiy_row}-G{umumiy_row})"
 
     # O'qituvchi ismi va o'quv yili
-    ws.cell(row=2, column=4).value = oqituvchi_name
+    safe_write(ws, 2, 4, oqituvchi_name)
     current_year = datetime.now().year
-    ws.cell(row=2, column=8).value = f"{current_year-1}-{current_year}"
+    safe_write(ws, 2, 8, f"{current_year-1}-{current_year}")
 
 # =======================================================
 # START VA RO'YXATDAN O'TISH
