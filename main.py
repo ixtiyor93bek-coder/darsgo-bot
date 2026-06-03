@@ -1103,13 +1103,9 @@ async def handle_excel_document(message: types.Message):
             await anim_task
             await msg.delete()
             await message.answer(
-                "⚠️ <b>Chorak aniqlanmadi!</b>
-
-"
+                "⚠️ <b>Chorak aniqlanmadi!</b>\n\n"
                 "Import fayl 7-qatorida '1 Chorak', '2 Chorak', '3 Chorak', '4 Chorak', "
-                "'1 yarim yillik' yoki '2 yarim yillik' yozuvi topilmadi.
-
-"
+                "'1 yarim yillik' yoki '2 yarim yillik' yozuvi topilmadi.\n\n"
                 "Fayl tuzilishini tekshiring.",
                 parse_mode="HTML"
             )
