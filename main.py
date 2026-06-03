@@ -307,28 +307,51 @@ def detect_subject(df):
                 return m.group(1).strip()
     return "noma'lum"
 
-def _convert_xls_to_xlsx_bytes(file_bytes):
-    """XLS faylni XLSX ga aylantirib bytes qaytaradi (LibreOffice orqali)."""
-    import tempfile, subprocess
-    with tempfile.NamedTemporaryFile(suffix='.xls', delete=False) as tmp_in:
-        tmp_in.write(file_bytes)
-        tmp_in_path = tmp_in.name
-    out_dir = os.path.dirname(tmp_in_path)
+def _read_xls_as_dataframe(file_bytes):
+    """XLS yoki XLSX faylni DataFrame sifatida o'qiydi.
+    Fayl kengaytmasidan qat'iy nazar, magic bytes orqali format aniqlanadi.
+    """
+    # Magic bytes orqali format aniqlash
+    magic = file_bytes[:4]
+    is_zip = magic[:2] == b'PK'          # xlsx, xlsm — ZIP container
+    is_ole = magic == b'\xd0\xcf\x11\xe0'  # xls — OLE2 container
+    is_xml = magic[:2] in (b'<?', b'<w') # XML-based SpreadsheetML
+
+    errors = []
+
+    # ZIP (xlsx) -> openpyxl
+    if is_zip:
+        try:
+            return pd.read_excel(io.BytesIO(file_bytes), header=None, engine='openpyxl')
+        except Exception as e:
+            errors.append(f'openpyxl: {e}')
+
+    # OLE2 (xls) -> xlrd
+    if is_ole:
+        try:
+            return pd.read_excel(io.BytesIO(file_bytes), header=None, engine='xlrd')
+        except Exception as e:
+            errors.append(f'xlrd: {e}')
+
+    # Fallback 1: openpyxl
     try:
-        subprocess.run(
-            ['libreoffice', '--headless', '--convert-to', 'xlsx', '--outdir', out_dir, tmp_in_path],
-            capture_output=True, timeout=30
-        )
-        xlsx_path = tmp_in_path.replace('.xls', '.xlsx')
-        if os.path.exists(xlsx_path):
-            with open(xlsx_path, 'rb') as f:
-                data = f.read()
-            os.remove(xlsx_path)
-            return data
-    finally:
-        if os.path.exists(tmp_in_path):
-            os.remove(tmp_in_path)
-    return None
+        return pd.read_excel(io.BytesIO(file_bytes), header=None, engine='openpyxl')
+    except Exception as e:
+        errors.append(f'openpyxl-fallback: {e}')
+
+    # Fallback 2: xlrd
+    try:
+        return pd.read_excel(io.BytesIO(file_bytes), header=None, engine='xlrd')
+    except Exception as e:
+        errors.append(f'xlrd-fallback: {e}')
+
+    # Fallback 3: pandas default engine
+    try:
+        return pd.read_excel(io.BytesIO(file_bytes), header=None)
+    except Exception as e:
+        errors.append(f'pandas-default: {e}')
+
+    raise ValueError("Faylni o'qib bo'lmadi. Quyidagi xatolar: " + " | ".join(errors))
 
 
 def _detect_chorak_from_row7(df):
@@ -452,15 +475,7 @@ def parse_import_excel(file_bytes):
     Import faylidan ma'lumotlarni o'qiydi.
     Qaytaradi: dict { sinf, fan, chorak, oqituvchi, students: [{name, bsb_balls, li_ball, fb, chsb, total, chorak_baho}] }
     """
-    # XLS faylni XLSX ga o'girish
-    try:
-        df = pd.read_excel(io.BytesIO(file_bytes), header=None, engine='openpyxl')
-    except Exception:
-        xlsx_bytes = _convert_xls_to_xlsx_bytes(file_bytes)
-        if xlsx_bytes:
-            df = pd.read_excel(io.BytesIO(xlsx_bytes), header=None, engine='openpyxl')
-        else:
-            df = pd.read_excel(io.BytesIO(file_bytes), header=None)
+    df = _read_xls_as_dataframe(file_bytes)
 
     result = {
         "sinf": None, "fan": None, "chorak": None, "oqituvchi": None,
