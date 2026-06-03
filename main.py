@@ -296,169 +296,300 @@ def row_to_text(row):
     return " ".join([str(x) for x in row if pd.notna(x)])
 
 def detect_subject(df):
-    """Fan nomini topish."""
+    """Fan nomini topish — asl (original) katta-kichik harfda."""
     for i in range(min(6, len(df))):
-        row_text = row_to_text(df.iloc[i]).lower()
-        if "fan" in row_text or "fani" in row_text:
-            result = re.sub(r"fan(i)?(\s+nomi)?[:.]?\s*", "", row_text, flags=re.IGNORECASE).strip()
-            result = re.sub(r"\s+", " ", result).strip()
-            return result
-    # Row 2 da to'g'ridan-to'g'ri fan nomi bo'lishi mumkin
-    for i in range(min(3, len(df))):
         for j in range(len(df.columns)):
             val = df.iloc[i, j]
-            if pd.notna(val) and isinstance(val, str) and len(val) > 3:
-                return val.strip()
+            if pd.isna(val) or not isinstance(val, str):
+                continue
+            m = re.search(r"fan\s*[:\s]\s*(.+)", val, re.IGNORECASE)
+            if m:
+                return m.group(1).strip()
     return "noma'lum"
+
+def _convert_xls_to_xlsx_bytes(file_bytes):
+    """XLS faylni XLSX ga aylantirib bytes qaytaradi (LibreOffice orqali)."""
+    import tempfile, subprocess
+    with tempfile.NamedTemporaryFile(suffix='.xls', delete=False) as tmp_in:
+        tmp_in.write(file_bytes)
+        tmp_in_path = tmp_in.name
+    out_dir = os.path.dirname(tmp_in_path)
+    try:
+        subprocess.run(
+            ['libreoffice', '--headless', '--convert-to', 'xlsx', '--outdir', out_dir, tmp_in_path],
+            capture_output=True, timeout=30
+        )
+        xlsx_path = tmp_in_path.replace('.xls', '.xlsx')
+        if os.path.exists(xlsx_path):
+            with open(xlsx_path, 'rb') as f:
+                data = f.read()
+            os.remove(xlsx_path)
+            return data
+    finally:
+        if os.path.exists(tmp_in_path):
+            os.remove(tmp_in_path)
+    return None
+
+
+def _detect_chorak_from_row7(df):
+    """
+    7-qatordan (index=6) chorak raqamini aniqlaydi.
+    Qoidalar:
+      "1 Chorak"               -> 1
+      "2 Chorak" yoki "1 yarim yillik" -> 2  (ikkalasi bo'lsa "2 Chorak" ustunligi bor)
+      "3 Chorak"               -> 3
+      "4 Chorak" yoki "2 yarim yillik" -> 4  (ikkalasi bo'lsa "4 Chorak" ustunligi bor)
+    Qaytaradi: (chorak_num, {chorak_baho_col_index, ...})
+    """
+    if len(df) < 7:
+        return None, {}
+
+    row7 = df.iloc[6]  # 7-qator (0-indexed = 6)
+
+    found = {}  # label -> col_index
+    for j, val in enumerate(row7):
+        if pd.isna(val):
+            continue
+        s = str(val).strip()
+        sl = s.lower()
+        # Exact / partial match
+        if re.search(r'4\s*chorak', sl):
+            found['4_chorak'] = j
+        elif re.search(r'2\s*yarim\s*yillik', sl):
+            found['2_yarim'] = j
+        elif re.search(r'3\s*chorak', sl):
+            found['3_chorak'] = j
+        elif re.search(r'2\s*chorak', sl):
+            found['2_chorak'] = j
+        elif re.search(r'1\s*yarim\s*yillik', sl):
+            found['1_yarim'] = j
+        elif re.search(r'1\s*chorak', sl):
+            found['1_chorak'] = j
+
+    # Chorak raqamini aniqlash
+    chorak_num = None
+    chorak_baho_col = None
+
+    if '4_chorak' in found:
+        chorak_num = 4
+        chorak_baho_col = found['4_chorak']
+    elif '2_yarim' in found and '4_chorak' not in found:
+        chorak_num = 4
+        chorak_baho_col = found['2_yarim']
+
+    if chorak_num is None:
+        if '3_chorak' in found:
+            chorak_num = 3
+            chorak_baho_col = found['3_chorak']
+
+    if chorak_num is None:
+        if '2_chorak' in found:
+            chorak_num = 2
+            chorak_baho_col = found['2_chorak']
+        elif '1_yarim' in found:
+            chorak_num = 2
+            chorak_baho_col = found['1_yarim']
+
+    if chorak_num is None:
+        if '1_chorak' in found:
+            chorak_num = 1
+            chorak_baho_col = found['1_chorak']
+
+    return chorak_num, chorak_baho_col
+
+
+def _detect_columns_from_row8(df):
+    """
+    8-qatordan (index=7) BSB, LI, FB, CHSB ustunlarini aniqlaydi.
+    Qaytaradi: dict { bsb_cols, li_col, fb_col, chsb_cols }
+    7-qatordan FB ustunini ham topib qo'shamiz.
+    """
+    if len(df) < 8:
+        return {'bsb_cols': [], 'li_col': None, 'fb_col': None, 'chsb_cols': []}
+
+    row8 = df.iloc[7]   # 8-qator (0-indexed=7)
+    row7 = df.iloc[6]   # 7-qator (0-indexed=6) — FB uchun
+
+    bsb_cols = []
+    li_col = None
+    fb_col = None
+    chsb_cols = []
+
+    for j, val in enumerate(row8):
+        if pd.isna(val):
+            continue
+        s = str(val).strip().upper()
+        if s == 'BSB':
+            bsb_cols.append(j)
+        elif s == 'LI':
+            li_col = j
+        elif s == 'CHSB':
+            chsb_cols.append(j)
+
+    # FB va Ballar (total) ni 7-qatordan qidirish
+    total_col = None
+    for j, val in enumerate(row7):
+        if pd.isna(val):
+            continue
+        s = str(val).strip().upper()
+        s_lower = str(val).strip().lower()
+        if s == 'FB':
+            fb_col = j
+        elif 'ballar' in s_lower or 'jami' in s_lower:
+            total_col = j
+
+    return {
+        'bsb_cols': bsb_cols,
+        'li_col': li_col,
+        'fb_col': fb_col,
+        'chsb_cols': chsb_cols,
+        'total_col': total_col
+    }
+
 
 def parse_import_excel(file_bytes):
     """
     Import faylidan ma'lumotlarni o'qiydi.
-    Qaytaradi: dict { sinf, fan, chorak, oqituvchi, students: [{name, bsb_balls, fb, chsb, total, chorak_baho}] }
+    Qaytaradi: dict { sinf, fan, chorak, oqituvchi, students: [{name, bsb_balls, li_ball, fb, chsb, total, chorak_baho}] }
     """
-    df = pd.read_excel(io.BytesIO(file_bytes), header=None)
+    # XLS faylni XLSX ga o'girish
+    try:
+        df = pd.read_excel(io.BytesIO(file_bytes), header=None, engine='openpyxl')
+    except Exception:
+        xlsx_bytes = _convert_xls_to_xlsx_bytes(file_bytes)
+        if xlsx_bytes:
+            df = pd.read_excel(io.BytesIO(xlsx_bytes), header=None, engine='openpyxl')
+        else:
+            df = pd.read_excel(io.BytesIO(file_bytes), header=None)
+
     result = {
         "sinf": None, "fan": None, "chorak": None, "oqituvchi": None,
         "students": []
     }
 
-    full_text = " ".join([str(x) for row in df.values for x in row if pd.notna(x)]).lower()
+    # --- Sinf ---
+    for i in range(min(6, len(df))):
+        row_text = row_to_text(df.iloc[i])
+        m = re.search(r"sinf\s*[:\s]\s*(\d{1,2})-([a-zA-Zа-яА-Я])", row_text, re.IGNORECASE)
+        if m:
+            result["sinf"] = f"{m.group(1)}-{m.group(2).upper()}"
+            break
+    if result["sinf"] is None:
+        full_text = " ".join([str(x) for row in df.values for x in row if pd.notna(x)])
+        m = re.search(r"\b(\d{1,2})-([a-zA-Zа-яА-Я])\b", full_text)
+        if m:
+            result["sinf"] = f"{m.group(1)}-{m.group(2).upper()}"
 
-    # Sinf
-    m = re.search(r"\b(\d{1,2})-([a-zA-Zа-яА-Я])\b", full_text)
-    if m:
-        result["sinf"] = f"{m.group(1)}-{m.group(2).upper()}"
+    # --- Fan nomi ---
+    for i in range(min(6, len(df))):
+        row_text = row_to_text(df.iloc[i])
+        m = re.search(r"fan\s*[:\s]\s*(.+)", row_text, re.IGNORECASE)
+        if m:
+            result["fan"] = m.group(1).strip()
+            break
+    if result["fan"] is None:
+        result["fan"] = detect_subject(df)
 
-    # Fan nomi
-    result["fan"] = detect_subject(df)
-
-    # Chorak raqami
-    m = re.search(r"chorak\s*[:\s]\s*(\d)|(\d)\s*[-]\s*chorak", full_text)
-    if m:
-        result["chorak"] = int(m.group(1) or m.group(2))
-    else:
-        m2 = re.search(r"\bchorak\b.*?(\d)", full_text)
-        if m2:
-            result["chorak"] = int(m2.group(1))
-
-    # Chorak raqami - metadata qatorlaridan
-    for i in range(min(10, len(df))):
-        for j in range(len(df.columns)):
-            val = df.iloc[i, j]
-            if pd.notna(val) and isinstance(val, (int, float)) and 1 <= int(val) <= 4:
-                prev = df.iloc[i, max(0, j-1)]
-                if pd.notna(prev) and "chorak" in str(prev).lower():
-                    result["chorak"] = int(val)
-                    break
-
-    # O'qituvchi
+    # --- O'qituvchi ---
     for i in range(min(8, len(df))):
         row_text = row_to_text(df.iloc[i])
-        m = re.search(r"o['`']?qituvchi.*?fio\s*[:\s]\s*(.+)", row_text, re.IGNORECASE)
+        m = re.search(r"o['`'\u2018\u2019]?qituvchi.*?fio\s*[:\s]\s*(.+)", row_text, re.IGNORECASE)
         if m:
             result["oqituvchi"] = m.group(1).strip()
             break
-        # G48 ga mos: to'g'ridan-to'g'ri ism
-        for j in range(len(df.columns)):
-            val = df.iloc[i, j]
-            if pd.notna(val) and isinstance(val, str):
-                parts = val.strip().split()
-                # Taxminan ism: 2-4 so'z, har biri katta harf bilan boshlanadi
-                if 2 <= len(parts) <= 4 and all(p[0].isupper() for p in parts if p):
-                    if result["oqituvchi"] is None:
-                        result["oqituvchi"] = val.strip()
 
-    # O'quvchilar qatorini topish
+    # --- Chorak raqami (7-qatordan) ---
+    chorak_num, chorak_baho_col = _detect_chorak_from_row7(df)
+    result["chorak"] = chorak_num
+
+    # --- 8-qatordan ustunlarni aniqlash ---
+    col_info = _detect_columns_from_row8(df)
+    bsb_cols = col_info['bsb_cols']      # BSB ustunlari (D, E, F uchun)
+    li_col = col_info['li_col']          # LI ustuni (G uchun)
+    fb_col = col_info['fb_col']          # FB ustuni (H uchun)
+    chsb_cols = col_info['chsb_cols']    # CHSB ustunlari (I uchun, max qiymat)
+    total_col_from_row7 = col_info.get('total_col')  # Ballar ustuni (J uchun)
+
+    # --- O'quvchilar qatorini topish ---
     start_row = None
     for i in range(len(df)):
         val = df.iloc[i, 0]
-        if pd.notna(val) and val == 1:
-            # 2-ustunda ism bor ekanligini tekshir
+        if pd.notna(val) and str(val).strip() == '1':
             name_val = df.iloc[i, 1] if len(df.columns) > 1 else None
             if pd.notna(name_val) and isinstance(name_val, str) and len(name_val) > 3:
                 start_row = i
                 break
+    # Fallback: raqam sifatida 1
+    if start_row is None:
+        for i in range(len(df)):
+            try:
+                val = df.iloc[i, 0]
+                if pd.notna(val) and int(float(str(val))) == 1:
+                    name_val = df.iloc[i, 1] if len(df.columns) > 1 else None
+                    if pd.notna(name_val) and isinstance(name_val, str) and len(name_val) > 3:
+                        start_row = i
+                        break
+            except Exception:
+                continue
 
     if start_row is None:
         raise Exception("O'quvchilar ro'yxati topilmadi. Jadval tuzilishini tekshiring.")
 
-    # Ustunlarni aniqlash (sarlavha qatorlaridan)
-    # Header qatorlari: start_row-2 va start_row-1
-    bsb_cols = []
-    chsb_col = None
-    fb_col = None
-    total_col = None
-    chorak_baho_col = None
-
-    for header_row_idx in [start_row - 2, start_row - 1]:
-        if header_row_idx < 0:
-            continue
-        row = df.iloc[header_row_idx]
-        for j, val in enumerate(row):
-            if pd.isna(val):
-                continue
-            val_str = str(val).lower()
-            if "bsb" in val_str and j not in bsb_cols:
-                bsb_cols.append(j)
-            elif "chsb" in val_str:
-                chsb_col = j
-            elif "fb" in val_str or "formativ" in val_str:
-                fb_col = j
-            elif "jami" in val_str or "100" in val_str:
-                total_col = j
-            elif "chorak" in val_str and "bahosi" in val_str:
-                chorak_baho_col = j
-
-    # Fallback: qiymatlar orqali aniqlash
-    if not bsb_cols or chsb_col is None or fb_col is None or total_col is None:
-        sample_row = df.iloc[start_row]
-        for j, val in enumerate(sample_row):
-            if pd.isna(val) or j <= 1:
-                continue
-            if isinstance(val, (int, float)):
-                if val <= 50 and j not in bsb_cols and chsb_col != j:
-                    bsb_cols.append(j)
-                elif 25 <= val <= 40:
-                    chsb_col = j
-                elif val <= 10:
-                    fb_col = j
-                elif val > 50:
-                    total_col = j
-
-    # O'quvchilarni o'qish
+    # --- O'quvchilarni o'qish ---
     for i in range(start_row, len(df)):
-        num_val = df.iloc[i, 0]
         name_val = df.iloc[i, 1] if len(df.columns) > 1 else None
 
-        if pd.isna(name_val) or not isinstance(name_val, str):
+        if pd.isna(name_val) or not isinstance(name_val, str) or len(name_val.strip()) < 3:
             break
 
         student = {
-            "num": num_val,
+            "num": df.iloc[i, 0],
             "name": name_val.strip(),
-            "bsb_balls": [],
-            "fb": None,
-            "chsb": None,
-            "total": None,
-            "chorak_baho": None
+            "bsb_balls": [],   # D, E, F ustunlari
+            "li_ball": None,   # G ustuni (LI)
+            "fb": None,        # H ustuni (FB)
+            "chsb": None,      # I ustuni (CHSB - max)
+            "total": None,     # J ustuni
+            "chorak_baho": None  # O ustuni
         }
 
+        # BSB ballari — max 3 ta, D/E/F ustunlari uchun
         for col in bsb_cols[:3]:
-            v = df.iloc[i, col] if col < len(df.columns) else None
-            student["bsb_balls"].append(v if pd.notna(v) else None)
+            if col < len(df.columns):
+                v = df.iloc[i, col]
+                student["bsb_balls"].append(v if pd.notna(v) else None)
+            else:
+                student["bsb_balls"].append(None)
 
-        if chsb_col is not None and chsb_col < len(df.columns):
-            v = df.iloc[i, chsb_col]
-            student["chsb"] = v if pd.notna(v) else None
+        # LI (Loyiha ishi) — G ustuni
+        if li_col is not None and li_col < len(df.columns):
+            v = df.iloc[i, li_col]
+            student["li_ball"] = v if pd.notna(v) else None
 
+        # FB — H ustuni
         if fb_col is not None and fb_col < len(df.columns):
             v = df.iloc[i, fb_col]
             student["fb"] = v if pd.notna(v) else None
 
-        if total_col is not None and total_col < len(df.columns):
-            v = df.iloc[i, total_col]
+        # CHSB — I ustuni (ikki CHSB bo'lsa, eng kattasi)
+        chsb_values = []
+        for col in chsb_cols:
+            if col < len(df.columns):
+                v = df.iloc[i, col]
+                if pd.notna(v):
+                    try:
+                        chsb_values.append(float(v))
+                    except Exception:
+                        pass
+        if chsb_values:
+            student["chsb"] = max(chsb_values)
+
+        # Jami ball — row7 dan topilgan total_col ishlatiladi
+        if total_col_from_row7 is not None and total_col_from_row7 < len(df.columns):
+            v = df.iloc[i, total_col_from_row7]
             student["total"] = v if pd.notna(v) else None
 
+        # Chorak bahosi — 7-qatordan topilgan ustun
         if chorak_baho_col is not None and chorak_baho_col < len(df.columns):
             v = df.iloc[i, chorak_baho_col]
             student["chorak_baho"] = v if pd.notna(v) else None
@@ -516,29 +647,34 @@ def fill_chorak_block(ws, chorak_num: int, data: dict):
 
     for i, st in enumerate(data["students"]):
         row = student_start + i
-        safe_write(ws, row, 2, st["name"])
+        # C ustuni (3): ism-familiya
+        safe_write(ws, row, 3, st["name"])
 
-        # BSB ustunlari: col D, E, F (4, 5, 6) — faqat birinchi 3 ta
-        bsb_cols = [4, 5, 6]
+        # BSB ustunlari: col D, E, F (4, 5, 6)
+        bsb_export_cols = [4, 5, 6]
         for j, bsb_val in enumerate(st["bsb_balls"][:3]):
             if bsb_val is not None:
-                safe_write(ws, row, bsb_cols[j], bsb_val)
+                safe_write(ws, row, bsb_export_cols[j], bsb_val)
 
-        # LI/Lab: col G (7) — bo'sh qoldiramiz (import faylda ko'pincha yo'q)
+        # LI (Loyiha ishi): col G (7)
+        li_val = st.get("li_ball")
+        if li_val is not None:
+            safe_write(ws, row, 7, li_val)
+
         # FB: col H (8)
-        if st["fb"] is not None:
+        if st.get("fb") is not None:
             safe_write(ws, row, 8, st["fb"])
 
-        # CHSB: col I (9)
-        if st["chsb"] is not None:
+        # CHSB: col I (9) — max qiymat (allaqachon max sifatida saqlangan)
+        if st.get("chsb") is not None:
             safe_write(ws, row, 9, st["chsb"])
 
         # Jami ball: col J (10)
-        if st["total"] is not None:
+        if st.get("total") is not None:
             safe_write(ws, row, 10, st["total"])
 
         # Chorak bahosi: col O (15)
-        if st["chorak_baho"] is not None:
+        if st.get("chorak_baho") is not None:
             safe_write(ws, row, 15, st["chorak_baho"])
 
 def generate_report(pending_rows: list) -> bytes:
@@ -958,9 +1094,26 @@ async def handle_excel_document(message: types.Message):
 
         sinf = data.get("sinf") or "noma'lum"
         fan = data.get("fan") or "noma'lum"
-        chorak = data.get("chorak") or 1
+        chorak = data.get("chorak")
         oqituvchi = data.get("oqituvchi") or "noma'lum"
         student_count = len(data.get("students", []))
+
+        if chorak is None:
+            stop_anim.set()
+            await anim_task
+            await msg.delete()
+            await message.answer(
+                "⚠️ <b>Chorak aniqlanmadi!</b>
+
+"
+                "Import fayl 7-qatorida '1 Chorak', '2 Chorak', '3 Chorak', '4 Chorak', "
+                "'1 yarim yillik' yoki '2 yarim yillik' yozuvi topilmadi.
+
+"
+                "Fayl tuzilishini tekshiring.",
+                parse_mode="HTML"
+            )
+            return
 
         # SQLite ga saqlash
         await asyncio.to_thread(save_pending_file, user_id, file_name, file_bytes, sinf, fan, chorak, oqituvchi)
